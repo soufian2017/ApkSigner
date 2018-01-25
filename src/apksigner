@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+
+import sys, os, argparse, getopt
+
+# Console colors
+W  = "\033[0m"  # white (normal)
+R  = "\033[31m" # red
+G  = "\033[32m" # green
+B  = "\033[34m" # blue
+
+
+def show_help():
+
+    print(R+"""Usage"""+W+""" : python3 apksigner <OPTIONS> <REQUIREMENTS>\n
+             <OPTIONS> : \n
+             -l --alias :   Give the alias to use in the key generation\n
+             -h --help  :   Print this help screen\n
+             <REQUIREMENTS> : \n
+             -k --key   :   Name your .keystore file \'Only the name required the extension is not\'\n
+             -a --apk   :   Enter the path to your .apk file\n
+ """+B+"""Example : python3 apksigner -a MyApk.apk -k MyKey -l key\n
+           python3 apksigner --apk='MyApk.apk' --key='MyKey' --alias='key'\n""");
+    sys.exit(0);
+
+
+def main(argv):
+    
+    global key, alias, apk; 
+    apk_ = False
+    alias_ = False
+    
+    #Default Declaration
+    key = "mykey"
+    alias = "myalias"
+    apk = "MyApk"
+    
+    if(os.geteuid() != 0): #Check Root
+        print(os.geteuid)
+        print("["+R+"*"+W+"] You must run the script as root")
+        sys.exit(-1)
+    try:
+        opts, args = getopt.getopt(argv,"ha:l:k:",["help","apk=","alias=","key="])
+    except getopt.GetoptError:
+        print(R+'[*]Wrong argument used'+W)
+        show_help()
+            
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            show_help()
+        elif opt in ("-k", "--key"):
+            key = arg
+        elif opt in ("-l", "--alias"):
+            alias = arg
+            alias_ = True
+        elif opt in ("-a", "--apk","-apk"):
+            apk = arg
+            apk_ = True
+            
+    if not (apk_ and alias_):
+        os.system("clear")
+        print(W+"["+R+"*"+W+"]You must specifie the -a (--apk) and the -k (--key) options\n")
+        show_help()
+        
+    print(B+"["+R+"*"+B+"] Generating the Keystore file\nFollow The Instructions below\n"+W)
+    os.system("sleep 0.3")
+    os.system('keytool -genkey -v -keystore /tmp/'+key+'.keystore -alias '+alias+' -keysize 2048 -validity 10000')
+    print(G+"Succesfully CREATED "+key+".keystore\n")
+    os.system("sleep 0.3")
+    print(B+"["+R+"*"+B+"] Signing The Apk File With "+key+".keystore\n"+W)
+    os.system("sleep 0.5")
+    a = os.system("jarsigner -digestalg SHA1 -keystore /tmp/"+key+".keystore "+apk+" "+alias)
+    if not a:
+        print("\n"+W+"["+R+"*"+W+"]"+G+" "+apk+" Has Been Signed Succesfully\n")
+    
+    print(R+"\nRemouving the Keystore file\n")
+    os.system("sleep 0.4")
+    os.system("rm /tmp/"+key+".keystore")
+    print(G+key+".keystore file remouved succesfully\n")
+        
+    sys.exit(0)
+        
+main(sys.argv[1:])       
+            
+            
